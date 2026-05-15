@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trident — Anti-Cheat for Roblox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --bg2:       #0f0f18;
+    --panel:     #13131e;
+    --border:    #1e1e30;
+    --accent:    #5078ff;
+    --accent2:   #3050cc;
+    --glow:      rgba(80,120,255,0.18);
+    --text:      #e0e0ee;
+    --sub:       #6a6a8a;
+    --danger:    #dc3c3c;
+    --clean:     #3cb46e;
+    --white:     #ffffff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── NOISE GRAIN ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.5;
+  }
+
+  /* ── BACKGROUND GLOW ORBS ── */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb-1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(80,120,255,0.12) 0%, transparent 70%);
+    top: -200px; left: -150px;
+    animation: orb-drift 18s ease-in-out infinite alternate;
+  }
+  .orb-2 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(80,120,255,0.08) 0%, transparent 70%);
+    bottom: 10%; right: -100px;
+    animation: orb-drift 24s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes orb-drift {
+    0%   { transform: translate(0, 0); }
+    100% { transform: translate(40px, 60px); }
+  }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    height: 64px;
+    background: rgba(10,10,15,0.7);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+  }
+
+  .nav-logo .trident-icon {
+    width: 28px;
+    height: 28px;
+    position: relative;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--sub);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .nav-cta {
+    background: var(--accent);
+    color: white !important;
+    padding: 8px 18px;
+    border-radius: 5px;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    transition: background 0.2s !important;
+  }
+  .nav-cta:hover { background: var(--accent2) !important; color: white !important; }
+
+  /* ── HERO ── */
+  #hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    overflow: hidden;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(80,120,255,0.1);
+    border: 1px solid rgba(80,120,255,0.25);
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 32px;
+    animation: fade-up 0.6s ease both;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  h1 {
+    font-size: clamp(52px, 9vw, 112px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    color: var(--white);
+    animation: fade-up 0.6s 0.1s ease both;
+    margin-bottom: 24px;
+  }
+
+  h1 .word-trident {
+    display: block;
+    background: linear-gradient(135deg, #fff 0%, #8ba4ff 60%, #5078ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h1 .word-sub {
+    display: block;
+    font-size: 0.42em;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    -webkit-text-fill-color: var(--sub);
+    background: none;
+    color: var(--sub);
+    margin-top: 6px;
+  }
+
+  .hero-desc {
+    max-width: 580px;
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--sub);
+    margin-bottom: 44px;
+    animation: fade-up 0.6s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fade-up 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: white;
+    padding: 14px 28px;
+    border-radius: 7px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-2px); }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--text);
+    padding: 14px 28px;
+    border-radius: 7px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s, transform 0.15s;
+    cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  /* ── GRID LINES ── */
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(80,120,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(80,120,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* ── STAT STRIP ── */
+  .stat-strip {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 0;
+    animation: fade-up 0.6s 0.5s ease both;
+  }
+
+  .stat-item {
+    flex: 1;
+    max-width: 240px;
+    padding: 32px 24px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.03em;
+    margin-bottom: 4px;
+  }
+
+  .stat-num span {
+    color: var(--accent);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--sub);
+  }
+
+  /* ── SECTION COMMON ── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 100px 24px;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .section-body {
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--sub);
+    max-width: 560px;
+  }
+
+  /* ── FEATURES GRID ── */
+  #features { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+  .features-header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  .features-header .section-body { margin: 0 auto; }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .feature-card {
+    background: var(--panel);
+    padding: 36px 32px;
+    transition: background 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover { background: #161626; }
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    width: 44px; height: 44px;
+    background: rgba(80,120,255,0.12);
+    border: 1px solid rgba(80,120,255,0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
+
+  .feature-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+
+  .feature-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--sub);
+  }
+
+  /* ── HOW IT WORKS ── */
+  #how {
+    overflow: hidden;
+  }
+
+  .how-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .how-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .how-step {
+    display: flex;
+    gap: 20px;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .how-step:last-child { border-bottom: none; }
+
+  .step-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 28px;
+    padding-top: 3px;
+  }
+
+  .step-content h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .step-content p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--sub);
+  }
+
+  /* ── TERMINAL CARD ── */
+  .terminal {
+    background: #080810;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: 'Space Mono', monospace;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    background: #0d0d1a;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .t-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .t-dot.red { background: #ff5f57; }
+  .t-dot.yellow { background: #febc2e; }
+  .t-dot.green { background: #28c840; }
+
+  .terminal-label {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--sub);
+    letter-spacing: 0.1em;
+  }
+
+  .terminal-body {
+    padding: 24px;
+    font-size: 12px;
+    line-height: 1.9;
+    color: #7a7a9a;
+  }
+
+  .t-comment { color: #3a3a5a; }
+  .t-key     { color: #5078ff; }
+  .t-val     { color: #3cb46e; }
+  .t-warn    { color: #dc3c3c; }
+  .t-bright  { color: #c0c0e0; }
+  .t-dim     { color: #4a4a6a; }
+
+  /* ── DISCLOSURE SECTION ── */
+  #privacy {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .privacy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+
+  .privacy-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .privacy-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--sub);
+    line-height: 1.5;
+  }
+
+  .privacy-list li::before {
+    content: '';
+    width: 6px; height: 6px;
+    min-width: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-top: 6px;
+  }
+
+  .notice-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    line-height: 2;
+    color: var(--sub);
+  }
+
+  .notice-box .notice-header {
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    padding: 48px 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .footer-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .footer-sub {
+    font-size: 13px;
+    color: var(--sub);
+    margin-bottom: 32px;
+  }
+
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--sub);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+
+  .footer-copy {
+    font-size: 12px;
+    color: #333355;
+    margin-top: 28px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 0 20px; }
+    .nav-links { display: none; }
+    .how-layout, .privacy-grid { grid-template-columns: 1fr; gap: 40px; }
+    .stat-strip { flex-wrap: wrap; }
+    .stat-item { border-right: none; border-bottom: 1px solid var(--border); flex: 1 1 140px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- ── NAV ── -->
+<nav>
+  <a class="nav-logo" href="#">
+    <svg class="trident-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M14 2 L14 26" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M14 2 L8 8" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M14 2 L20 8" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M8 5 L8 13" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M20 5 L20 13" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M6 22 L22 22" stroke="#5078ff" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    </svg>
+    TRIDENT
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#privacy">Privacy</a></li>
+    <li><a href="#" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <div class="hero-grid"></div>
+
+  <div class="hero-eyebrow">Roblox Anti-Cheat</div>
+
+  <h1>
+    <span class="word-trident">TRIDENT</span>
+    <span class="word-sub">Server protection. Zero compromise.</span>
+  </h1>
+
+  <p class="hero-desc">
+    Trident is a silent, server-authoritative anti-cheat system for Roblox. It detects exploits, logs violators, and keeps your game fair — without your players ever noticing it's there.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#" class="btn-primary">
+      Get Trident
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <a href="#features" class="btn-ghost">See how it works</a>
+  </div>
+</section>
+
+<!-- ── STAT STRIP ── -->
+<div class="stat-strip reveal">
+  <div class="stat-item">
+    <div class="stat-num">0<span>ms</span></div>
+    <div class="stat-label">Impact on game performance</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">3<span>+</span></div>
+    <div class="stat-label">Detection layers</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">100<span>%</span></div>
+    <div class="stat-label">Server-authoritative</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">∞</div>
+    <div class="stat-label">Cross-server flag memory</div>
+  </div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section id="features">
+  <div class="container">
+    <div class="features-header reveal">
+      <div class="section-label">What it does</div>
+      <h2 class="section-title">Multi-layer detection,<br>built from the server up</h2>
+      <p class="section-body">Every check runs server-side. Client-reported data is cross-validated or discarded. Cheaters can manipulate their client — they can't manipulate your server.</p>
+    </div>
+
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Speed &amp; Physics Detection</div>
+        <div class="feature-desc">Tracks real displacement over time and compares it to what's physically possible at the player's current WalkSpeed — catching speed exploits even when WalkSpeed itself is inflated.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <div class="feature-title">Spin Exploit Detection</div>
+        <div class="feature-desc">Monitors root part angular velocity. Excessive rotation from physics manipulation is zeroed instantly and logged. Clean behaviour decays the suspicion score automatically.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">VM Integrity Engine</div>
+        <div class="feature-desc">Fingerprints core VM operations and standard library functions at startup. Any hook, swap, or Lua shim injected by an executor is detected within milliseconds.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📡</div>
+        <div class="feature-title">Heartbeat Monitoring</div>
+        <div class="feature-desc">A tamper-proof comms channel verifies the client runtime is alive every 0.5 seconds. Kill the script, suspend the thread, or miss too many pings — the server acts.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡</div>
+        <div class="feature-title">State &amp; Tool Validation</div>
+        <div class="feature-desc">Humanoid state transitions are checked against real geometry. Tool duplication is caught by monitoring simultaneous BackpackItem presence in the character model.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗂</div>
+        <div class="feature-title">Persistent Flag Memory</div>
+        <div class="feature-desc">Strike records follow players across all servers and sessions via DataStore. Flags from server A are visible on server B — no fresh start for repeat offenders.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section id="how">
+  <div class="container">
+    <div class="how-layout">
+      <div class="reveal">
+        <div class="section-label">Architecture</div>
+        <h2 class="section-title">How Trident works</h2>
+        <p class="section-body" style="margin-bottom: 40px;">A lightweight client runtime feeds into a hardened server engine. The server trusts nothing from the client it cannot verify independently.</p>
+
+        <div class="how-steps">
+          <div class="how-step">
+            <div class="step-num">01</div>
+            <div class="step-content">
+              <h3>Client runtime starts silently</h3>
+              <p>Trident's client script locates its comms channel via a stripped CollectionService tag, making it invisible to standard discovery methods used by exploit GUIs.</p>
+            </div>
+          </div>
+          <div class="how-step">
+            <div class="step-num">02</div>
+            <div class="step-content">
+              <h3>Server establishes a player record</h3>
+              <p>On join, the server creates an in-memory record for each player and loads any historical flags from the DataStore before checks begin.</p>
+            </div>
+          </div>
+          <div class="how-step">
+            <div class="step-num">03</div>
+            <div class="step-content">
+              <h3>Polling and event checks run in parallel</h3>
+              <p>A single-coroutine scheduler runs server-side physics, state, and tool checks. Character events handle tool duplication and invalid state transitions independently.</p>
+            </div>
+          </div>
+          <div class="how-step">
+            <div class="step-num">04</div>
+            <div class="step-content">
+              <h3>Strikes accumulate — action is taken</h3>
+              <p>Each violation adds to a weighted strike table. Once the total crosses the configured threshold, the player is removed and their record is persisted to the DataStore.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal" style="transition-delay: 0.15s;">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="t-dot red"></div>
+            <div class="t-dot yellow"></div>
+            <div class="t-dot green"></div>
+            <span class="terminal-label">TRIDENT SERVER LOG</span>
+          </div>
+          <div class="terminal-body">
+<span class="t-comment">-- Server runtime initialised</span>
+<span class="t-key">[Trident]</span> <span class="t-bright">Comms channel initialised.</span>
+
+<span class="t-key">[Trident]</span> <span class="t-bright">Player joined: <span class="t-val">CoolGamer123</span> (118823)</span>
+<span class="t-key">[Trident]</span> <span class="t-bright">Loaded flags for <span class="t-val">CoolGamer123</span></span>
+<span class="t-dim">           total strikes: <span class="t-val">0</span></span>
+<span class="t-key">[Trident]</span> <span class="t-bright">Identity saved | <span class="t-val">CoolGamer123</span></span>
+<span class="t-dim">           locale=<span class="t-val">GB</span> | platform=<span class="t-val">Windows</span></span>
+
+<span class="t-comment">-- 47 seconds later</span>
+
+<span class="t-key">[Trident:DBG]</span> <span class="t-warn">CoolGamer123 moved 94.2 studs,</span>
+<span class="t-dim">               max 22.5 (violation 1/3)</span>
+<span class="t-key">[Trident:DBG]</span> <span class="t-warn">CoolGamer123 moved 91.7 studs,</span>
+<span class="t-dim">               max 22.5 (violation 2/3)</span>
+<span class="t-key">[Trident:DBG]</span> <span class="t-warn">CoolGamer123 moved 88.3 studs,</span>
+<span class="t-dim">               max 22.5 (violation 3/3)</span>
+
+<span class="t-key">[Trident]</span> Strike <span class="t-warn">+1</span> | <span class="t-val">CoolGamer123</span> | SpeedExploit
+<span class="t-key">[Trident]</span> Strike <span class="t-warn">+1</span> | <span class="t-val">CoolGamer123</span> | SpeedExploit
+<span class="t-warn">[Trident]</span> <span class="t-warn">Kicking CoolGamer123 | SpeedExploit</span>
+
+<span class="t-comment">-- Record flushed to DataStore</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRIVACY / DISCLOSURE ── -->
+<section id="privacy">
+  <div class="container">
+    <div class="privacy-grid">
+      <div class="reveal">
+        <div class="section-label">Transparency</div>
+        <h2 class="section-title">What Trident logs — and why</h2>
+        <p class="section-body">Trident collects the minimum data needed to identify and track exploiters. Players are notified at session start. Developers control what is stored.</p>
+
+        <ul class="privacy-list">
+          <li>Username, Display Name &amp; User ID — to uniquely identify flagged accounts across all servers</li>
+          <li>Country / Region — collected server-side via Roblox's LocalizationService; cannot be spoofed by the client</li>
+          <li>Account creation date — used to identify throwaway and alt accounts commonly used by exploiters</li>
+          <li>Platform — the only client-reported field, since Roblox provides no server-side equivalent</li>
+          <li>Alternate accounts — cross-referenced where Roblox's API permits</li>
+          <li>Strike history — weighted per-reason, merged across servers without overwriting earlier findings</li>
+        </ul>
+      </div>
+
+      <div class="reveal" style="transition-delay: 0.12s;">
+        <div class="section-label" style="margin-bottom: 20px;">Shown to players on join</div>
+        <div class="notice-box">
+          <div class="notice-header">--- TRIDENT ---</div>
+          THIS SERVER IS PROTECTED BY TRIDENT ANTI-CHEAT<br>
+          TRIDENT LOGS THE FOLLOWING INFORMATION:<br>
+          &nbsp;&nbsp;Username | Display Name | User ID | Country<br>
+          &nbsp;&nbsp;Account Date | Alternate Accounts | Platform
+        </div>
+
+        <div style="margin-top: 20px; padding: 20px; background: rgba(80,120,255,0.06); border: 1px solid rgba(80,120,255,0.15); border-radius: 8px;">
+          <div style="font-size: 13px; color: var(--sub); line-height: 1.7;">
+            The full disclosure notice is shown by default. Developers can switch to a brief version — or disable disclosure entirely — via a single config flag. Trident never collects passwords, payment data, or any information beyond what's listed above.
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; padding: 20px; background: rgba(60,180,100,0.06); border: 1px solid rgba(60,180,100,0.15); border-radius: 8px;">
+          <div style="font-size: 13px; color: var(--clean); font-weight: 600; margin-bottom: 6px;">Developer-configurable</div>
+          <div style="font-size: 13px; color: var(--sub); line-height: 1.7;">Flag threshold, auto-ban, kick message, disabled checks, ping timeout, and verbose logging are all adjustable without touching Trident's internals.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-logo">
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+      <path d="M14 2 L14 26" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M14 2 L8 8" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M14 2 L20 8" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M8 5 L8 13" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M20 5 L20 13" stroke="#5078ff" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M6 22 L22 22" stroke="#5078ff" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    </svg>
+    TRIDENT
+  </div>
+  <p class="footer-sub">Server-authoritative anti-cheat for Roblox.</p>
+  <ul class="footer-links">
+    <li><a href="#">Features</a></li>
+    <li><a href="#">Documentation</a></li>
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Contact</a></li>
+    <li><a href="https://trident.ac">trident.ac</a></li>
+  </ul>
+  <p class="footer-copy">© 2025 Trident Anti-Cheat · trident.ac</p>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Terminal typing effect
+  const termBody = document.querySelector('.terminal-body');
+  const lines = termBody.innerHTML.split('\n');
+  termBody.innerHTML = '';
+  let lineIdx = 0;
+
+  function nextLine() {
+    if (lineIdx >= lines.length) return;
+    termBody.innerHTML += lines[lineIdx] + '\n';
+    lineIdx++;
+    const delay = lines[lineIdx - 1].includes('violation') ? 320
+                : lines[lineIdx - 1].includes('Kicking')   ? 600
+                : lines[lineIdx - 1].trim() === ''          ? 80
+                : 120;
+    setTimeout(nextLine, delay);
+  }
+
+  // Start when terminal is visible
+  const termObs = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      setTimeout(nextLine, 400);
+      termObs.disconnect();
+    }
+  }, { threshold: 0.3 });
+  termObs.observe(document.querySelector('.terminal'));
+</script>
+</body>
+</html>
