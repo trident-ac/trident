@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trident — Anti-Cheat for Roblox</title>
+<title>Trident Anti-Cheat</title>
+  <meta name="description" content="ROBLOX Cheating Solutions">
+
+    <meta property="og:title" content="Trident Anti-Cheat">
+    <meta property="og:description" content="ROBLOX Cheating Solutions">
+    <meta property="og:type" content="website">
+
+  <meta name="theme-color" content="#5865F2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -681,15 +688,13 @@
 <section id="hero">
   <div class="hero-grid"></div>
 
-  <div class="hero-eyebrow">Roblox Anti-Cheat</div>
-
   <h1>
     <span class="word-trident">TRIDENT</span>
     <span class="word-sub">Server protection. Zero compromise.</span>
   </h1>
 
   <p class="hero-desc">
-    Trident is a silent, server-authoritative anti-cheat system for Roblox. It detects exploits, logs violators, and keeps your game fair — without your players ever noticing it's there.
+    Trident is a silent, server-authoritative anti-cheat for ROBLOX. It silently detects exploits, logs all cheaters and keeps your game fair, without your players ever knowing its there.
   </p>
 
   <div class="hero-actions">
@@ -732,14 +737,14 @@
 
     <div class="features-grid reveal">
       <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <div class="feature-title">Speed &amp; Physics Detection</div>
-        <div class="feature-desc">Tracks real displacement over time and compares it to what's physically possible at the player's current WalkSpeed — catching speed exploits even when WalkSpeed itself is inflated.</div>
+        <div class="feature-icon">🔄</div>
+        <div class="feature-title">Speedhack &amp; Illegal Physics Detection / Spin/Fling Detection</div>
+        <div class="feature-desc">Tracks every users speed and height and compares it to what's physically possible at the players current walking speed. Ensuring speed hacks are taken care of even with irregular WalkSpeed configurations. Monitors root part angular velocity. Excessive rotation from physics manipulation is stopped instantly and logged.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔄</div>
-        <div class="feature-title">Spin Exploit Detection</div>
-        <div class="feature-desc">Monitors root part angular velocity. Excessive rotation from physics manipulation is zeroed instantly and logged. Clean behaviour decays the suspicion score automatically.</div>
+        <div class="feature-icon">🤝</div>
+        <div class="feature-title">Trust Factor</div>
+        <div class="feature-desc">Users gain 'trust' by staying in good standing, ensuring they have no flags on their account and verifying their account. Players trust may decrease if they have an unverified account, a new account or have been flagged by Trident.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🧠</div>
@@ -749,7 +754,7 @@
       <div class="feature-card">
         <div class="feature-icon">📡</div>
         <div class="feature-title">Heartbeat Monitoring</div>
-        <div class="feature-desc">A tamper-proof comms channel verifies the client runtime is alive every 0.5 seconds. Kill the script, suspend the thread, or miss too many pings — the server acts.</div>
+        <div class="feature-desc">A tamper-proof comms channel verifies the client runtime is alive every 0.5 seconds. Kill the script, suspend the thread, or miss too many pings and Trident will step in.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🛡</div>
@@ -759,7 +764,7 @@
       <div class="feature-card">
         <div class="feature-icon">🗂</div>
         <div class="feature-title">Persistent Flag Memory</div>
-        <div class="feature-desc">Strike records follow players across all servers and sessions via DataStore. Flags from server A are visible on server B — no fresh start for repeat offenders.</div>
+        <div class="feature-desc">Strike records follow players across all servers and sessions via DataStore. Flags from server A are visible on server B, ensuring cheaters stay detected.</div>
       </div>
     </div>
   </div>
@@ -779,7 +784,7 @@
             <div class="step-num">01</div>
             <div class="step-content">
               <h3>Client runtime starts silently</h3>
-              <p>Trident's client script locates its comms channel via a stripped CollectionService tag, making it invisible to standard discovery methods used by exploit GUIs.</p>
+              <p>Trident's client script locates ██████████ via ████████████████████████████, making it invisible to standard discovery methods used by exploit GUIs.</p>
             </div>
           </div>
           <div class="how-step">
@@ -799,8 +804,8 @@
           <div class="how-step">
             <div class="step-num">04</div>
             <div class="step-content">
-              <h3>Strikes accumulate — action is taken</h3>
-              <p>Each violation adds to a weighted strike table. Once the total crosses the configured threshold, the player is removed and their record is persisted to the DataStore.</p>
+              <h3>Accumulation of flags</h3>
+              <p>Trident uses a sophisticated flagging system which accurately flags players based on irregular behaviour and potential foul play. Developers can configure Trident to kick a user automatically upon being flagged a certain amount of times.</p>
             </div>
           </div>
         </div>
@@ -815,26 +820,24 @@
             <span class="terminal-label">TRIDENT SERVER LOG</span>
           </div>
           <div class="terminal-body">
-<span class="t-comment">-- Server runtime initialised</span>
-<span class="t-key">[Trident]</span> <span class="t-bright">Comms channel initialised.</span>
 
 <span class="t-key">[Trident]</span> <span class="t-bright">Player joined: <span class="t-val">CoolGamer123</span> (118823)</span>
 <span class="t-key">[Trident]</span> <span class="t-bright">Loaded flags for <span class="t-val">CoolGamer123</span></span>
 <span class="t-dim">           total strikes: <span class="t-val">0</span></span>
 <span class="t-key">[Trident]</span> <span class="t-bright">Identity saved | <span class="t-val">CoolGamer123</span></span>
-<span class="t-dim">           locale=<span class="t-val">GB</span> | platform=<span class="t-val">Windows</span></span>
+<span class="t-dim">           locale=<span class="t-val">GB</span> | platform=<span class="t-val">PC</span></span>
 
 <span class="t-comment">-- 47 seconds later</span>
 
-<span class="t-key">[Trident:DBG]</span> <span class="t-warn">CoolGamer123 moved 94.2 studs,</span>
+<span class="t-key">[Trident]</span> <span class="t-warn">CoolGamer123 moved 94.2 studs,</span>
 <span class="t-dim">               max 22.5 (violation 1/3)</span>
-<span class="t-key">[Trident:DBG]</span> <span class="t-warn">CoolGamer123 moved 91.7 studs,</span>
+<span class="t-key">[Trident]</span> <span class="t-warn">CoolGamer123 moved 91.7 studs,</span>
 <span class="t-dim">               max 22.5 (violation 2/3)</span>
-<span class="t-key">[Trident:DBG]</span> <span class="t-warn">CoolGamer123 moved 88.3 studs,</span>
+<span class="t-key">[Trident]</span> <span class="t-warn">CoolGamer123 moved 88.3 studs,</span>
 <span class="t-dim">               max 22.5 (violation 3/3)</span>
 
-<span class="t-key">[Trident]</span> Strike <span class="t-warn">+1</span> | <span class="t-val">CoolGamer123</span> | SpeedExploit
-<span class="t-key">[Trident]</span> Strike <span class="t-warn">+1</span> | <span class="t-val">CoolGamer123</span> | SpeedExploit
+<span class="t-key">[Trident]</span> Flag <span class="t-warn">+1</span> | <span class="t-val">CoolGamer123</span> | SpeedExploit
+<span class="t-key">[Trident]</span> Flag <span class="t-warn">+1</span> | <span class="t-val">CoolGamer123</span> | SpeedExploit
 <span class="t-warn">[Trident]</span> <span class="t-warn">Kicking CoolGamer123 | SpeedExploit</span>
 
 <span class="t-comment">-- Record flushed to DataStore</span>
@@ -860,7 +863,7 @@
           <li>Account creation date — used to identify throwaway and alt accounts commonly used by exploiters</li>
           <li>Platform — the only client-reported field, since Roblox provides no server-side equivalent</li>
           <li>Alternate accounts — cross-referenced where Roblox's API permits</li>
-          <li>Strike history — weighted per-reason, merged across servers without overwriting earlier findings</li>
+          <li>Flag history — merged across servers</li>
         </ul>
       </div>
 
@@ -868,21 +871,18 @@
         <div class="section-label" style="margin-bottom: 20px;">Shown to players on join</div>
         <div class="notice-box">
           <div class="notice-header">--- TRIDENT ---</div>
-          THIS SERVER IS PROTECTED BY TRIDENT ANTI-CHEAT<br>
-          TRIDENT LOGS THE FOLLOWING INFORMATION:<br>
-          &nbsp;&nbsp;Username | Display Name | User ID | Country<br>
-          &nbsp;&nbsp;Account Date | Alternate Accounts | Platform
+          THIS SERVER IS PROTECTED BY TRIDENT ANTI-CHEAT
         </div>
 
         <div style="margin-top: 20px; padding: 20px; background: rgba(80,120,255,0.06); border: 1px solid rgba(80,120,255,0.15); border-radius: 8px;">
           <div style="font-size: 13px; color: var(--sub); line-height: 1.7;">
-            The full disclosure notice is shown by default. Developers can switch to a brief version — or disable disclosure entirely — via a single config flag. Trident never collects passwords, payment data, or any information beyond what's listed above.
+            The full disclosure notice is shown by default. Developers can switch to a brief version — or disable disclosure entirely — via a single config flag. Trident will never collect data without letting its players know beforehand.
           </div>
         </div>
 
         <div style="margin-top: 16px; padding: 20px; background: rgba(60,180,100,0.06); border: 1px solid rgba(60,180,100,0.15); border-radius: 8px;">
           <div style="font-size: 13px; color: var(--clean); font-weight: 600; margin-bottom: 6px;">Developer-configurable</div>
-          <div style="font-size: 13px; color: var(--sub); line-height: 1.7;">Flag threshold, auto-ban, kick message, disabled checks, ping timeout, and verbose logging are all adjustable without touching Trident's internals.</div>
+          <div style="font-size: 13px; color: var(--sub); line-height: 1.7;">Flag threshold, auto-ban, kick message, disabled checks, ping timeout, delay ban, and verbose logging are all adjustable without touching Trident's internals.</div>
         </div>
       </div>
     </div>
