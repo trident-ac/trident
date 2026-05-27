@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N8 Lobby Revealer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+  :root {
+    --red: #E5343A;
+    --red-dim: #8B1F23;
+    --red-glow: rgba(229,52,58,0.18);
+    --bg: #0A0A0B;
+    --bg2: #111113;
+    --bg3: #1A1A1D;
+    --border: rgba(255,255,255,0.07);
+    --border-red: rgba(229,52,58,0.35);
+    --text: #F0EDEA;
+    --muted: #6E6A66;
+    --accent: #C8B89A;
+  }
+ 
+  html { scroll-behavior: smooth; }
+ 
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+ 
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+ 
+  /* SCANLINES */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+ 
+  .wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+ 
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,11,0.85);
+    backdrop-filter: blur(12px);
+  }
+  nav .inner {
+    max-width: 960px; margin: 0 auto; padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--red); }
+  .nav-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--red);
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 8px 18px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .nav-cta:hover { background: #c42d32; transform: translateY(-1px); }
+ 
+  /* HERO */
+  header {
+    padding: 140px 0 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent);
+  }
+  .hero-line {
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--red), transparent 60%);
+    transform: translateX(-50%);
+    opacity: 0.4;
+  }
+  .hero-inner { position: relative; text-align: center; }
+ 
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border-red);
+    background: rgba(229,52,58,0.08);
+    color: var(--red);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    padding: 6px 16px;
+    margin-bottom: 2rem;
+  }
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+ 
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(64px, 12vw, 120px);
+    line-height: 0.9;
+    letter-spacing: 0.03em;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  h1 em {
+    font-style: normal;
+    color: var(--red);
+    display: block;
+  }
+ 
+  .hero-sub {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 440px;
+    margin: 0 auto 2.5rem;
+    font-weight: 300;
+  }
+ 
+  .hero-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+ 
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--red);
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    padding: 14px 28px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { background: #c42d32; transform: translateY(-2px); }
+ 
+  .btn-ghost {
+    display: inline-flex; align-items: center;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    padding: 14px 28px;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+ 
+  /* SLOTS SECTION */
+  .slots-section { padding: 80px 0; }
+ 
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+ 
+  h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 0.75rem;
+  }
+  h2 span { color: var(--red); }
+ 
+  .section-sub {
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 480px;
+    margin-bottom: 3rem;
+  }
+ 
+  /* SLOT GRID */
+  .slots-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 2rem;
+  }
+  @media (max-width: 700px) { .slots-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; } }
+ 
+  .slot {
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px;
+    transition: border-color 0.2s;
+  }
+  .slot.taken {
+    border-color: var(--border-red);
+    background: rgba(229,52,58,0.06);
+  }
+  .slot-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .slot.taken .slot-num { color: var(--red-dim); }
+  .slot-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--border);
+  }
+  .slot.taken .slot-status { color: var(--red-dim); }
+  .slot.open .slot-num { color: var(--accent); }
+  .slot.open .slot-status { color: var(--accent); opacity: 0.6; }
+ 
+  .slots-legend {
+    display: flex; gap: 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  .leg { display: flex; align-items: center; gap: 8px; }
+  .leg-dot {
+    width: 8px; height: 8px;
+    border: 1px solid;
+  }
+  .leg-dot.taken { background: rgba(229,52,58,0.2); border-color: var(--red-dim); }
+  .leg-dot.open { background: transparent; border-color: var(--accent); }
+ 
+  /* PRICE CARD */
+  .price-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 3rem;
+  }
+  @media (max-width: 600px) { .price-row { grid-template-columns: 1fr; } }
+ 
+  .card {
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 2rem;
+  }
+  .card.featured { border-color: var(--border-red); background: rgba(229,52,58,0.04); }
+ 
+  .card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .card.featured .card-label { color: var(--red); }
+ 
+  .price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .price sup { font-size: 24px; vertical-align: super; }
+ 
+  .price-note {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+  }
+ 
+  .feature-list { list-style: none; }
+  .feature-list li {
+    font-size: 14px;
+    color: var(--muted);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .feature-list li:last-child { border-bottom: none; }
+  .feature-list li::before {
+    content: '';
+    width: 4px; height: 4px;
+    background: var(--red);
+    flex-shrink: 0;
+  }
+  .card.featured .feature-list li { color: var(--text); }
+ 
+  /* FEATURES */
+  .features-section { padding: 80px 0; border-top: 1px solid var(--border); }
+ 
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+  @media (max-width: 640px) { .features-grid { grid-template-columns: 1fr; } }
+ 
+  .feat {
+    background: var(--bg);
+    padding: 2rem;
+    transition: background 0.2s;
+  }
+  .feat:hover { background: var(--bg2); }
+ 
+  .feat-icon {
+    width: 32px; height: 32px;
+    border: 1px solid var(--border-red);
+    background: rgba(229,52,58,0.08);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1.2rem;
+  }
+  .feat-icon svg { width: 16px; height: 16px; stroke: var(--red); fill: none; stroke-width: 1.5; }
+ 
+  .feat h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .feat p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+ 
+  /* FAQ */
+  .faq-section { padding: 80px 0; border-top: 1px solid var(--border); }
+ 
+  .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 3rem; margin-top: 3rem; }
+  @media (max-width: 640px) { .faq-grid { grid-template-columns: 1fr; } }
+ 
+  .faq-item { border-top: 1px solid var(--border); padding: 1.5rem 0; }
+  .faq-item:last-child { border-bottom: 1px solid var(--border); }
+ 
+  .faq-q {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .faq-q::before {
+    content: 'Q';
+    color: var(--red);
+    flex-shrink: 0;
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .faq-a {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.65;
+    padding-left: 20px;
+  }
+ 
+  /* PAYMENT */
+  .payment-section { padding: 80px 0; border-top: 1px solid var(--border); }
+  .payment-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 3rem;
+  }
+  @media (max-width: 600px) { .payment-grid { grid-template-columns: 1fr; } }
+  .payment-card {
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 2rem;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 1rem;
+    transition: border-color 0.2s;
+  }
+  .payment-card:hover { border-color: rgba(255,255,255,0.15); }
+  .payment-icon {
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border-red);
+    background: rgba(229,52,58,0.06);
+    flex-shrink: 0;
+  }
+  .payment-icon svg { width: 20px; height: 20px; }
+  .payment-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    line-height: 1;
+  }
+  .payment-ticker {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--red);
+    margin-top: 2px;
+  }
+  .payment-note {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .payment-footer {
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.25rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+ 
+ 
+  .showcase-section { padding: 80px 0; border-top: 1px solid var(--border); }
+ 
+  .showcase-video-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .showcase-video-wrap video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .showcase-video-wrap .play-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px;
+    background: rgba(10,10,11,0.55);
+    transition: background 0.2s;
+  }
+  .showcase-video-wrap:hover .play-overlay { background: rgba(10,10,11,0.35); }
+  .showcase-video-wrap.playing .play-overlay { display: none; }
+  .play-btn {
+    width: 56px; height: 56px;
+    border: 1px solid var(--border-red);
+    background: rgba(229,52,58,0.15);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .play-btn:hover { background: rgba(229,52,58,0.3); transform: scale(1.05); }
+  .play-btn svg { width: 20px; height: 20px; fill: var(--red); margin-left: 3px; }
+  .play-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+  }
+  .video-placeholder-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-align: center;
+    padding: 6px 0 0;
+  }
+ 
+  .showcase-images {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  @media (max-width: 600px) { .showcase-images { grid-template-columns: 1fr 1fr; } }
+ 
+  .showcase-img-wrap {
+    position: relative;
+    aspect-ratio: 16/10;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .showcase-img-wrap:hover { border-color: var(--border-red); }
+  .showcase-img-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+  }
+  .showcase-img-wrap:hover img { transform: scale(1.04); }
+  .img-placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px;
+  }
+  .img-placeholder svg { width: 24px; height: 24px; stroke: var(--muted); fill: none; stroke-width: 1.5; opacity: 0.5; }
+  .img-placeholder span {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    opacity: 0.5;
+  }
+  .showcase-img-label {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10,10,11,0.75);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 6px 10px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .showcase-img-wrap:hover .showcase-img-label { opacity: 1; }
+ 
+  /* LIGHTBOX */
+  .lightbox {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.92);
+    align-items: center; justify-content: center;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img {
+    max-width: 90vw; max-height: 85vh;
+    object-fit: contain;
+    border: 1px solid var(--border);
+  }
+  .lightbox-close {
+    position: absolute; top: 24px; right: 28px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    cursor: pointer;
+    background: none; border: none;
+    transition: color 0.2s;
+  }
+  .lightbox-close:hover { color: var(--text); }
+ 
+  /* TOS */
+  .tos-section { padding: 80px 0; border-top: 1px solid var(--border); }
+ 
+  .tos-box {
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 2.5rem;
+    margin-top: 3rem;
+    position: relative;
+  }
+  .tos-box::before {
+    content: 'TOS';
+    position: absolute;
+    top: -12px; left: 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--red);
+    background: var(--bg2);
+    padding: 0 8px;
+  }
+  .tos-box p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-bottom: 1rem;
+  }
+  .tos-box p:last-child { margin-bottom: 0; }
+ 
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 0;
+  }
+  footer .inner {
+    max-width: 960px; margin: 0 auto; padding: 0 2rem;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .footer-logo span { color: var(--red-dim); }
+  footer p {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+ 
+  /* DIVIDER */
+  .section-divider {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 1rem;
+  }
+  .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+ 
+  /* CTA BAND */
+  .cta-band {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-band::before {
+    content: '';
+    position: absolute;
+    left: 50%; top: 0;
+    transform: translateX(-50%);
+    width: 1px; height: 100%;
+    background: linear-gradient(to bottom, transparent, var(--border-red), transparent);
+  }
+  .cta-band h2 { margin-bottom: 0.75rem; }
+  .cta-band p { color: var(--muted); font-size: 15px; margin-bottom: 2rem; }
+ 
+  /* SLOT COUNT */
+  .avail-count {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: rgba(200,184,154,0.08);
+    border: 1px solid rgba(200,184,154,0.2);
+    padding: 6px 14px;
+    margin-bottom: 1rem;
+    display: block;
+    width: fit-content;
+    margin: 0 auto 2rem;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <a class="nav-logo" href="#"><span>N8</span> LOBBY REVEALER</a>
+    <a class="nav-cta" href="https://discord.gg/ZXay8mefay" target="_blank">GET A SLOT →</a>
+  </div>
+</nav>
+
+<header>
+  <div class="hero-grid"></div>
+  <div class="hero-line"></div>
+  <div class="wrap hero-inner">
+    <div class="hero-badge">PRIVATE TOOL · SLOTTED · ACTIVE</div>
+    <h1>LOBBY<em>REVEALER</em></h1>
+    <p class="hero-sub">See who's in your lobby before the game starts. Real-time rank, agent, and player information — direct to you.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="https://discord.gg/ZXay8mefay" target="_blank">Purchase a Slot — $75</a>
+      <a class="btn-ghost" href="#faq">Learn More</a>
+    </div>
+  </div>
+</header>
+
+<section class="slots-section">
+  <div class="wrap">
+    <div class="section-label">AVAILABILITY</div>
+    <h2>AVAILABLE <span>SLOTS</span></h2>
+    <p class="section-sub">This tool is limited to 10 concurrent license holders. Once all slots are taken, purchases close.</p>
+
+    <div class="slots-grid">
+        <!-- <div class="slot taken"><span class="slot-num">1</span><span class="slot-status">TAKEN</span></div> example of taken slot -->
+      <div class="slot open"><span class="slot-num">1</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">2</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">3</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">4</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">5</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">6</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">7</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">8</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">9</span><span class="slot-status">VACANT</span></div>
+      <div class="slot open"><span class="slot-num">10</span><span class="slot-status">VACANT</span></div>
+    </div>
+
+    <div class="slots-legend">
+      <div class="leg"><div class="leg-dot taken"></div>TAKEN</div>
+      <div class="leg"><div class="leg-dot open"></div>AVAILABLE</div>
+    </div>
+
+    <div class="price-row">
+      <div class="card">
+        <div class="card-label">What you're buying</div>
+        <div class="price"><sup>$</sup>75</div>
+        <div class="price-note">One-time · Lifetime slot</div>
+        <ul class="feature-list">
+          <li>One permanent slot*</li>
+          <li>Real-time lobby info in Discord DMs</li>
+          <li>Rank display for all players</li>
+          <li>Agent selection visibility</li>
+          <li>Server location detection</li>
+          <li>Wintrader &amp; flagged player alerts</li>
+        </ul>
+      </div>
+      <div class="card featured">
+        <div class="card-label">Also included</div>
+        <div class="price" style="font-size:36px; margin-bottom: 1rem;">SUPPORT &amp;<br>UPDATES</div>
+        <ul class="feature-list">
+          <li>Active maintenance by the developer</li>
+          <li>Fast updates if anything breaks</li>
+          <li>Help with any issues, no ticket system</li>
+          <li>/dodge command via Discord bot</li>
+          <li>Post-match result delivered to DMs</li>
+          <li>Discord-based slash command control</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features-section">
+  <div class="wrap">
+    <div class="section-label">WHAT IT DOES</div>
+    <h2>EVERY <span>FEATURE</span></h2>
+    <p class="section-sub">Everything runs privately on your machine and delivers straight to your Discord DMs.</p>
+    <div class="features-grid">
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <h3>PLAYER NAMES</h3>
+        <p>Reveals the Riot IDs of all players in your lobby, including those with hidden names where possible.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+        </div>
+        <h3>RANK DISPLAY</h3>
+        <p>Pulls current rank information for every player in both agent select and live game.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <h3>AGENT SELECT</h3>
+        <p>See which agents your teammates are locking in, including your own team's composition in pregame.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        </div>
+        <h3>FLAGGED ALERTS</h3>
+        <p>Automatically warns you if a wintrader, flagged player, or known streamer is detected in your lobby.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <h3>MATCH RESULTS</h3>
+        <p>After every game, full scoreboard stats — ACS, K/D/A, HS% — get sent directly to your DMs.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <h3>DISCORD NATIVE</h3>
+        <p>All lobby info goes directly to your Discord DMs. Use /dodge to leave agent select without touching the game window.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <h3>CUSTOMISABLE VERSIONS</h3>
+        <p>Each slot is built 1:1 for each player. Don't want Discord integration? No problem — an optional CLI version is available for users who prefer to keep things local.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <h3>TRACKER INTEGRATION</h3>
+        <p>Every player displayed in your lobby comes with a direct link to their stats profile. Discord integrated feature only.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        </div>
+        <h3>CONSTANT SUPPORT</h3>
+        <p>N8LR has 24/7 support available for all slotted users ensuring a seamless experience.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="showcase-section" id="showcase">
+  <div class="wrap">
+    <div class="section-label">IN ACTION</div>
+    <h2>SHOWCASE</h2>
+    <p class="section-sub">See the tool running live — lobby data, Discord DMs, and agent select in real time.</p>
+
+    <!-- IMAGES -->
+    <div class="showcase-images" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="showcase-img-wrap" onclick="openLightbox(this.querySelector('img').src)">
+        <img src="game_console_censored.png" alt="Agent select lobby reveal" onerror="this.style.display='none'">
+        <div class="showcase-img-label">NAME REVEALING (SOME INFORMATION REDACTED FOR SECURITY)</div>
+      </div>
+
+      <div class="showcase-img-wrap" onclick="openLightbox(this.querySelector('img').src)">
+        <img src="discord_dm_censored.png" alt="Discord DM with lobby info" onerror="this.style.display='none'">
+        <div class="showcase-img-label">DISCORD DM OUTPUT (SOME INFORMATION REDACTED FOR SECURITY)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">CLOSE ×</button>
+  <img id="lightboxImg" src="" alt="Screenshot">
+</div>
+
+<section class="faq-section" id="faq">
+  <div class="wrap">
+    <div class="section-label">COMMON QUESTIONS</div>
+    <h2>FAQ</h2>
+    <div class="faq-grid">
+      <div>
+        <div class="faq-item">
+          <div class="faq-q">Where do I purchase?</div>
+          <p class="faq-a">Purchases are handled exclusively through our <a href="https://discord.gg/ZXay8mefay" target="_blank" style="color: var(--accent);">Discord</a>.</p>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Is this bannable?</div>
+          <p class="faq-a">Yes — third-party tools that interact with Valorant carry a ban risk. That said, the developer has used this personally for years without issue. Do not paste hidden player names into all chat, as that's the main behaviour that draws attention.</p>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What region does it support?</div>
+          <p class="faq-a">Defaults to EU however can be changed upon request.</p>
+        </div>
+      </div>
+      <div>
+        <div class="faq-item">
+          <div class="faq-q">What is the maintenance policy?</div>
+          <p class="faq-a">The developer actively maintains the tool and pushes updates as soon as things break. Personal support is provided directly — no ticket system, no waiting.</p>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What makes it unique?</div>
+          <p class="faq-a">N8's lobby revealer does not collect your login information unlike other applications such as DailyVal and VALPAW. It utilises files stored on your system provided by Riot to function, making it the most secure option currently available. All user data collected is publicly disclosed and no one with access to the source code can access your account or data. Each private slot is built 1:1 for each player with your region and needs in mind.</p>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Is my information stored?</div>
+          <p class="faq-a">In the slotted version, yes — your Discord ID is stored to deliver lobby info to your DMs. This is done only with your explicit cooperation and consent during setup.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="tos-section">
+  <div class="wrap">
+    <div class="section-label">TERMS</div>
+    <h2>TERMS OF <span>SERVICE</span></h2>
+    <div class="tos-box">
+      <p>In order to ensure every license is bound to a unique player, some information about your computer is stored by the licensing system. Hardware information about your PC is stored and encrypted in transit for security purposes, to ensure that two people cannot use the same license or slot simultaneously.</p>
+      <p>No information stored is uniquely identifying — such as passwords, emails, or Riot tags — and therefore cannot be pinpointed to a specific person.</p>
+      <p>In some cases, such as this slotted version, your Discord ID is stored. This is done only with the full cooperation and consent of both the user and the seller. Your Discord ID is used solely to deliver lobby information and match results to your DMs, and for nothing else.</p>
+      <p>By purchasing a slot, you acknowledge the inherent ban risk associated with using third-party tools in Valorant and accept full responsibility for any consequences arising from your use of this software.</p>
+      <p>Prices for slots may change at any time, however the consumer will keep their original price for their product, and only new users will be charged the new amount.</p>
+      <p>Slots are limited to one per user, however exceptions may be made at a higher price if deemed fit. 10 new slots are generated each month, to ensure more users can use the tool.</p>
+      <p>The TOS may change at any time without notice, this also means that security measures may be updated accordingly.</p>
+      <p>*Slot may be revoked if ToS is violated.</p>
+    </div>
+  </div>
+</section>
+
+<section class="payment-section">
+  <div class="wrap">
+    <div class="section-label">PAYMENT</div>
+    <h2>ACCEPTED <span>METHODS</span></h2>
+    <p class="section-sub">All payments are made in cryptocurrency. This is so that both I and the consumer can remain anonymous throughout transactions and maintain privacy.</p>
+ 
+    <div class="payment-grid">
+      <div class="payment-card">
+        <div class="payment-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.5 8.5C15.5 7.1 14.4 6 13 6H9V12H13C14.4 12 15.5 10.9 15.5 9.5V8.5Z" stroke="#E5343A" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M16 14.5C16 13.1 14.9 12 13.5 12H9V18H13.5C14.9 18 16 16.9 16 15.5V14.5Z" stroke="#E5343A" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M11 6V4M13 6V4M11 18V20M13 18V20" stroke="#E5343A" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="payment-name">Bitcoin</div>
+          <div class="payment-ticker">BTC</div>
+        </div>
+        <p class="payment-note">The original and most widely used cryptocurrency. Wallet address provided on purchase.</p>
+      </div>
+ 
+      <div class="payment-card">
+        <div class="payment-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3L19.5 12L12 21L4.5 12L12 3Z" stroke="#E5343A" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M12 3L19.5 12L12 16.5L4.5 12L12 3Z" stroke="#E5343A" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="payment-name">Ethereum</div>
+          <div class="payment-ticker">ETH</div>
+        </div>
+        <p class="payment-note">Fast and widely supported. Wallet address provided on purchase.</p>
+      </div>
+ 
+      <div class="payment-card">
+        <div class="payment-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9" stroke="#E5343A" stroke-width="1.5"/>
+            <path d="M12 6V18M9 8.5H13.5C14.6 8.5 15.5 9.4 15.5 10.5C15.5 11.6 14.6 12.5 13.5 12.5H9M9 12.5H14C15.1 12.5 16 13.4 16 14.5C16 15.6 15.1 16.5 14 16.5H9" stroke="#E5343A" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="payment-name">Litecoin</div>
+          <div class="payment-ticker">LTC</div>
+        </div>
+        <p class="payment-note">Faster transactions and lower fees. Wallet address provided on purchase.</p>
+      </div>
+    </div>
+ 
+    <p class="payment-footer">JOIN DISCORD · DM DEV · WALLET ADDRESS WILL BE PROVIDED</p>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap">
+    <div class="section-label" style="text-align:center; margin-bottom: 1rem;">LIMITED TO 10 SLOTS</div>
+    <h2>READY TO <span>BUY?</span></h2>
+    <p>24/7 support via Discord.</p>
+    <a class="btn-primary" href="https://discord.gg/ZXay8mefay" target="_blank" style="margin: 0 auto; display: inline-flex;">Purchase from Trident →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="inner">
+    <div class="footer-logo"><span>N8</span> LOBBY REVEALER</div>
+    <p>PRIVATE · SLOTTED · $75 · trident.ac/lobbyrevealer</p>
+  </div>
+</footer>
+
+<script>
+  function openLightbox(src) {
+    if (!src || src.includes('YOUR_IMAGE')) return;
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+</body>
+</html>
