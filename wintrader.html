@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wintrade Detector</title>
+<style>
+:root{--bg:#e8ecf0;--card:#fff;--ink:#14212e;--mute:#5d6b79;--line:#cfd7de;--w:#0f8a6d;--l:#c8374f;--d:#8a94a0;--flag:#d98a00;--hi:#c8374f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:28px 16px 60px}
+h1{font-size:28px;margin:0 0 4px;letter-spacing:-.01em}
+p.sub{margin:0 0 20px;color:var(--mute);max-width:62ch}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+form{display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:10px;align-items:end}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mute);gap:4px}
+input,select,button{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);min-width:0}
+button{background:var(--ink);color:#fff;border-color:var(--ink);cursor:pointer;font-weight:600}
+button:disabled{opacity:.5;cursor:wait}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+#status{margin:0 0 16px;color:var(--mute)}
+#status.err{color:var(--hi);font-weight:600}
+.stats{display:flex;flex-wrap:wrap;gap:28px;margin-bottom:12px}
+.stats b{display:block;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stats span{font-size:13px;color:var(--mute)}
+.line{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.dot{width:14px;height:14px;border-radius:3px;display:inline-block}
+.dot.W{background:var(--w)}.dot.L{background:var(--l)}.dot.D{background:var(--d)}
+h2{font-size:17px;margin:0 0 4px}
+.note{font-size:13px;color:var(--mute);margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:13px;color:var(--mute);font-weight:600}
+.wrap{overflow-x:auto}
+.seq{display:inline-flex;gap:2px}
+.seq i{font-style:normal;font-size:11px;font-weight:700;color:#fff;width:16px;height:16px;border-radius:3px;display:grid;place-items:center}
+.seq i.W{background:var(--w)}.seq i.L{background:var(--l)}.seq i.D{background:var(--d)}
+.tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.high{background:#fbe3e7;color:var(--hi)}.tag.watch{background:#fcefd2;color:#8a5a00}.tag.party{background:#dff1ec;color:var(--w)}
+.nm{font-weight:600}.nm small{color:var(--mute);font-weight:400}
+.chk{display:flex;flex-direction:row;align-items:center;gap:6px;margin-bottom:10px}
+.chk input{padding:0}
+.dot.sus2{outline:2px solid var(--hi);outline-offset:1px}
+.dot.sus1{outline:2px solid var(--flag);outline-offset:1px}
+.seq i,.dot{cursor:pointer}
+.detail{position:fixed;right:16px;bottom:16px;width:min(360px,calc(100% - 32px));background:var(--card);border:1px solid var(--ink);border-radius:8px;padding:14px 16px;box-shadow:0 8px 24px rgba(20,33,46,.18);z-index:10}
+.detail[hidden]{display:none}
+.detail dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0 0}
+.detail dt{color:var(--mute);font-size:13px}
+.detail dd{margin:0;word-break:break-all}
+.detail code{font-size:12px}
+.detail .x{float:right;padding:3px 8px;font-size:13px;background:#fff;color:var(--ink)}
+.detail dd button{padding:2px 8px;font-size:12px;background:#fff;color:var(--ink);margin-left:6px}
+@media(max-width:760px){form{grid-template-columns:1fr 1fr}form button{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<main>
+<h1>Wintrade detector</h1>
+<p class="sub">Pull a player's recent matches, then see who they queue with, who they keep meeting on the other team, and how those games ended.</p>
+
+<div class="panel">
+<form id="f">
+<label>Riot ID<input id="tag" placeholder="Name#TAG" required autocomplete="off"></label>
+<label>HenrikDev API key<input id="key" type="password" placeholder="HDEV-..." required autocomplete="off"></label>
+<label>Competitive games<select id="n"><option>10</option><option>20</option><option selected>30</option><option>50</option></select></label>
+<button id="go">Scan games</button>
+</form>
+</div>
+
+<p id="status">Enter a Riot ID and your API key to start.</p>
+<div id="out" hidden>
+<div class="panel" id="sum"></div>
+<div class="panel">
+<h2>Queues with</h2>
+<p class="note">Everyone who was on the player's team in 2+ games, including duos and stacks. "In party" counts the games Riot listed them in the same party.</p>
+<div class="wrap"><table id="mates"></table></div>
+</div>
+<div class="panel">
+<h2>Players seen across games</h2>
+<p class="note">Sorted by suspicion. In a random 10-player lobby, meeting the same non-party player again and again is unusual, and win/loss results that flip every time you meet are the classic trade pattern. Facing the same player on separate days is marked as a wintrade, and players under level 100 get a higher score. A K/D below 0.85 across their games against the target is flagged as poor.</p>
+<label class="chk"><input type="checkbox" id="all"> Show players seen only once</label>
+<div class="wrap"><table id="tbl"></table></div>
+</div>
+<p class="note">This is a heuristic, not proof. Small ranks, off-peak hours and party queues also produce repeat matchups, so check the games yourself before accusing anyone.</p>
+</div>
+</main>
+<div class="detail" id="detail" hidden></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const BASE='https://api.henrikdev.xyz/valorant';
+let cache=null;
+const reg=[];
+const dt=$('detail');
+const ent=(r,p)=>({res:r.res,id:r.id,server:r.server,map:r.map,score:r.score,t:r.t,queue:r.queue,agent:r.agent,k:p?.stats?.kills,d:p?.stats?.deaths,pn:p?.name});
+async function fillLevels(key,who,msg){
+  const my=cache,st=$('status');
+  const need=my.list.filter(p=>p.level==null&&p.score>0&&p.puuid).slice(0,20);
+  if(!need.length)return;
+  for(let i=0;i<need.length;i++){
+    st.textContent=`Looking up account levels (${i+1}/${need.length})…`;
+    try{
+      const d=await api(`/v2/by-puuid/account/${need[i].puuid}`,key);
+      const lv=d?.account_level;
+      if(lv>0)my.people.get(need[i].puuid).level=lv;
+    }catch(e){if(/Rate/.test(e.message))break}
+  }
+  if(cache===my){my.list=scorePeople(my.people);render(my,who)}
+  st.textContent=msg;
+}
+function servers(arr){
+  const c={};arr.forEach(x=>c[x.server]=(c[x.server]||0)+1);
+  const e=Object.entries(c).sort((a,b)=>b[1]-a[1]);
+  return e.length?e.map(([s,n],i)=>i?`${esc(s)} ×${n}`:`<b>${esc(s)} ×${n}</b>`).join(', '):'–';
+}
+function showDetail(k){
+  const a=reg[k];if(!a)return;
+  const word=a.res==='W'?'Win':a.res==='L'?'Loss':'Draw';
+  dt.innerHTML=`<button class="x" id="dx" type="button">Close</button>
+  <div><span class="seq"><i class="${a.res}">${a.res}</i></span> <b>${word}</b> for the scanned player, ${esc(a.score)} on ${esc(a.map||'unknown map')}</div>
+  <dl>
+  <dt>Match ID</dt><dd><code id="mid">${esc(a.id)}</code><button id="cp" type="button">Copy</button></dd>
+  <dt>Server</dt><dd>${esc(a.server)}</dd>
+  <dt>Queue</dt><dd>${esc(a.queue||'unknown')}</dd>
+  <dt>Agent</dt><dd>${esc(a.agent||'unknown')}</dd>
+  ${a.k!=null&&a.d!=null?`<dt>${esc(a.pn||'Player')} K/D</dt><dd>${a.k}/${a.d} (${(a.k/Math.max(1,a.d)).toFixed(2)})</dd>`:''}
+  <dt>Played</dt><dd>${esc(new Date(a.t).toLocaleString())}</dd>
+  </dl>`;
+  dt.hidden=false;
+}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-k]');
+  if(t){showDetail(+t.dataset.k);return}
+  if(e.target.id==='dx'){dt.hidden=true;return}
+  if(e.target.id==='cp'){
+    const id=$('mid').textContent;
+    try{await navigator.clipboard.writeText(id)}
+    catch(_){const r=document.createRange();r.selectNode($('mid'));const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy')}catch(__){}}
+    e.target.textContent='Copied';
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')dt.hidden=true;
+  if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.k!==undefined)showDetail(+e.target.dataset.k);
+});
+
+async function api(path,key){
+  let r;
+  try{r=await fetch(BASE+path,{headers:{Authorization:key,Accept:'application/json'}})}
+  catch(e){throw new Error('Could not reach the API. Check your connection, or open this file in a normal browser tab.')}
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!r.ok){
+    const m=j?.errors?.[0]?.message||j?.message||('HTTP '+r.status);
+    if(r.status===429)throw new Error('Rate limited. Wait a minute, then scan again.');
+    if(r.status===401||r.status===403)throw new Error('API key rejected: '+m);
+    if(r.status===404)throw new Error('Player not found. Check the name and tag.');
+    throw new Error(m);
+  }
+  return j.data;
+}
+
+$('f').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const raw=$('tag').value.trim(),i=raw.lastIndexOf('#');
+  const st=$('status');
+  if(i<1){st.className='err';st.textContent='Use the format Name#TAG.';return}
+  const name=raw.slice(0,i),tag=raw.slice(i+1),key=$('key').value.trim();
+  const want=+$('n').value,mode='competitive';
+  $('go').disabled=true;$('out').hidden=true;st.className='';st.textContent='Looking up player…';
+  try{
+    const acc=await api(`/v2/account/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`,key);
+    const region=acc.region||'eu';
+    let all=[],seen=new Set();
+    for(let s=0;s<want;s+=10){
+      st.textContent=`Fetching matches ${s+1}–${Math.min(s+10,want)}…`;
+      const q=`/v4/matches/${region}/pc/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=${Math.min(10,want-s)}&start=${s}`+(mode?`&mode=${mode}`:'');
+      const d=await api(q,key);
+      if(!d||!d.length)break;
+      for(const m of d){if(!seen.has(m.metadata.match_id)){seen.add(m.metadata.match_id);all.push(m)}}
+      if(d.length<10)break;
+    }
+    if(!all.length)throw new Error('No matches found for that player and mode.');
+    all.sort((a,b)=>new Date(b.metadata.started_at)-new Date(a.metadata.started_at));
+    const fetched=all.length;
+    all=all.slice(0,want);
+    cache=analyze(all,acc.puuid);
+    const who=`${acc.name||name}#${acc.tag||tag}`;
+    render(cache,who);
+    st.textContent=`Scanned ${cache.rows.length} games.`+(fetched<want?` You asked for ${want} but the API only returned ${fetched}. It can only serve games it has stored or can still pull from Riot.`:'')+(cache.skipped?` Skipped ${cache.skipped} non-team games (Deathmatch etc.).`:'');
+    $('out').hidden=false;
+    await fillLevels(key,who,st.textContent);
+  }catch(err){st.className='err';st.textContent=err.message}
+  $('go').disabled=false;
+});
+$('all').addEventListener('change',()=>cache&&drawTable(cache));
+
+function analyze(matches,puuid){
+  const rows=[];let skipped=0;
+  for(const m of matches){
+    if(!m.teams||m.teams.length!==2){skipped++;continue}
+    const me=m.players.find(p=>p.puuid===puuid);if(!me){skipped++;continue}
+    const mine=m.teams.find(t=>t.team_id===me.team_id),theirs=m.teams.find(t=>t.team_id!==me.team_id);
+    const res=mine?.won?'W':(theirs?.won?'L':'D');
+    const mates=m.players.filter(p=>p.team_id===me.team_id&&p.puuid!==puuid);
+    const enemies=m.players.filter(p=>p.team_id!==me.team_id);
+    const party=new Set(mates.filter(p=>p.party_id&&p.party_id===me.party_id).map(p=>p.puuid));
+    rows.push({id:m.metadata.match_id,queue:m.metadata.queue?.name,server:m.metadata.cluster||m.metadata.region||'unknown',t:new Date(m.metadata.started_at).getTime(),res,map:m.metadata.map?.name,agent:me.agent?.name,
+      score:`${mine?.rounds?.won??'?'}-${mine?.rounds?.lost??'?'}`,mates,enemies,party});
+  }
+  rows.sort((a,b)=>a.t-b.t);
+  const people=new Map();
+  const get=p=>{let o=people.get(p.puuid);if(!o){o={puuid:p.puuid,name:p.name,tag:p.tag,with:[],against:[],partied:0};people.set(p.puuid,o)}o.name=p.name;o.tag=p.tag;const lv=p.account_level??p.accountLevel??p.level;if(lv>0)o.level=lv;return o};
+  rows.forEach((r,idx)=>{
+    r.mates.forEach(p=>{const o=get(p);o.with.push(ent(r,p));if(r.party.has(p.puuid))o.partied++});
+    r.enemies.forEach(p=>{get(p).against.push({...ent(r,p),idx})});
+  });
+  return{rows,people,list:scorePeople(people),skipped};
+}
+
+function scorePeople(people){
+  const list=[];
+  for(const o of people.values()){
+    const a=o.against,n=a.length;
+    let flips=0,adj=0;
+    for(let k=1;k<n;k++){
+      const x=a[k-1].res,y=a[k].res;
+      if(x!=='D'&&y!=='D'&&x!==y)flips++;
+      if(a[k].idx-a[k-1].idx===1)adj++;
+    }
+    const alt=n>1?flips/(n-1):0;
+    const stack=o.partied>=1;
+    const lostTo=a.filter(x=>x.res==='W').length;
+    const partyLoss=stack&&lostTo>=1;
+    const altHigh=n>=3&&alt>=.75;
+    const days=new Set(a.map(x=>new Date(x.t).toDateString())).size;
+    const wintrade=days>=2;
+    let level='';
+    if(partyLoss||altHigh||wintrade)level='high';
+    else if(n>=4||(n>=3&&adj>=2))level='watch';
+    const hasKd=a.some(x=>x.k!=null&&x.d!=null);
+    const kd=hasKd?a.reduce((s,x)=>s+(x.k||0),0)/Math.max(1,a.reduce((s,x)=>s+(x.d||0),0)):null;
+    const poorKd=kd!=null&&kd<0.85;
+    const base=(partyLoss?100+lostTo*10:0)+(wintrade?50+(days-2)*10:0)+(poorKd?25:0)+(n>=2?(n-1)*10:0)+(n>=3?Math.round(alt*30):0)+adj*5;
+    const lowBoost=o.level!=null&&o.level<100&&base>0;
+    const score=base+(lowBoost?40:0);
+    list.push({...o,n,flips,alt,adj,stack,lostTo,partyLoss,altHigh,days,wintrade,kd,poorKd,lowBoost,level,score,wn:o.with.length});
+  }
+  list.sort((a,b)=>b.score-a.score||(b.n+b.wn)-(a.n+a.wn));
+  return list;
+}
+
+function seq(arr){return '<span class="seq">'+arr.map(a=>`<i class="${a.res}" data-k="${reg.push(a)-1}" tabindex="0" role="button" aria-label="Show match details">${a.res}</i>`).join('')+'</span>'}
+function wl(arr){arr=arr.map(x=>x.res||x);const w=arr.filter(x=>x==='W').length,l=arr.filter(x=>x==='L').length;return `${w}W ${l}L`}
+
+function render({rows,list},who){
+  reg.length=0;dt.hidden=true;
+  const hi=new Set(list.filter(p=>p.level==='high').map(p=>p.puuid)),wa=new Set(list.filter(p=>p.level==='watch').map(p=>p.puuid));
+  rows.forEach(r=>{r.sus=r.enemies.some(p=>hi.has(p.puuid))?2:r.enemies.some(p=>wa.has(p.puuid))?1:0});
+  const likely=rows.filter(r=>r.sus===2),maybe=rows.filter(r=>r.sus===1);
+  const lw=likely.filter(r=>r.res==='W').length,ll=likely.filter(r=>r.res==='L').length;
+  const pct=n=>rows.length?Math.round(n/rows.length*100):0;
+  const hiEnd=likely.length+maybe.length;
+  const w=rows.filter(r=>r.res==='W').length,l=rows.filter(r=>r.res==='L').length;
+  const parties={};
+  rows.forEach(r=>r.party.forEach(id=>{const p=r.mates.find(x=>x.puuid===id);const k=id;parties[k]=parties[k]||{p,res:[]};parties[k].res.push(r.res)}));
+  const pl=Object.values(parties).sort((a,b)=>b.res.length-a.res.length).slice(0,5);
+  const partyGames=rows.filter(r=>r.party.size>0).length;
+  $('sum').innerHTML=`<h2>${esc(who)}</h2>
+  <div class="stats">
+    <div><b>${rows.length}</b><span>games scanned</span></div>
+    <div><b>${rows.length?Math.round(w/rows.length*100):0}%</b><span>win rate (${w}W ${l}L)</span></div>
+    <div><b>${partyGames}</b><span>games in a party</span></div>
+    <div><b>${list.filter(p=>p.level==='high').length}</b><span>high-suspicion opponents</span></div>
+    <div><b>${likely.length}${maybe.length?'–'+hiEnd:''}</b><span>estimated wintraded games (${pct(likely.length)}${maybe.length?'–'+pct(hiEnd):''}%)</span></div>
+  </div>
+  <p class="note">Estimate: ${likely.length} of ${rows.length} games (${lw} wins, ${ll} losses) were against a high-suspicion player, and ${maybe.length} more were against repeat opponents. The lower number is the likely count and the higher number is the ceiling.</p>
+  <div class="note">Oldest to newest. Red rings mark games against a high-suspicion player, orange rings games against a repeat opponent.</div>
+  <div class="line">${rows.map(r=>`<span class="dot ${r.res}${r.sus?' sus'+r.sus:''}" data-k="${reg.push(r)-1}" tabindex="0" role="button" aria-label="Show match details"></span>`).join('')}</div>
+  ${pl.length?`<p class="note" style="margin-top:14px">Usual party: ${pl.map(x=>`<b>${esc(x.p.name)}#${esc(x.p.tag)}</b> (${x.res.length} games, ${wl(x.res)})`).join(', ')}</p>`:'<p class="note" style="margin-top:14px">No party games in this sample.</p>'}`;
+  if(rows.length){const f=t=>new Date(t).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
+    $('sum').insertAdjacentHTML('beforeend',`<p class="note" style="margin-top:8px">Games from ${f(rows[0].t)} to ${f(rows[rows.length-1].t)}</p>`)}
+  drawMates(list);
+  drawTable({rows,list});
+}
+
+function drawMates(list){
+  const m=list.filter(p=>p.wn>=2).sort((a,b)=>b.wn-a.wn||b.partied-a.partied);
+  let h='<tr><th>Player</th><th>Games together</th><th>In party</th><th>Record</th><th>Results</th><th>Servers</th></tr>';
+  if(!m.length)h+='<tr><td colspan="6" class="note">Nobody was on the same team twice.</td></tr>';
+  for(const p of m){
+    h+=`<tr><td class="nm">${esc(p.name)}<small>#${esc(p.tag)}</small>${p.level!=null?` <small>Lv ${p.level}</small>`:''}</td><td>${p.wn}</td>
+    <td>${p.partied?`<span class="tag party">${p.partied} of ${p.wn}</span>`:'–'}</td>
+    <td>${wl(p.with)}</td><td>${seq(p.with)}</td><td>${servers(p.with)}</td></tr>`;
+  }
+  $('mates').innerHTML=h;
+}
+
+function drawTable({list}){
+  const showAll=$('all').checked;
+  const show=list.filter(p=>showAll||p.n+p.wn>=2);
+  let h='<tr><th>Player</th><th>Teammate</th><th>Opponent</th><th>Results vs them</th><th>Flip rate</th><th>Servers</th><th>Flag</th></tr>';
+  if(!show.length)h+='<tr><td colspan="7" class="note">Nobody appeared more than once.</td></tr>';
+  for(const p of show.slice(0,400)){
+    const tags=[];
+    if(p.wintrade)tags.push(`<span class="tag high">Wintrade: faced on ${p.days} separate days</span>`);
+    if(p.poorKd)tags.push(`<span class="tag watch">Poor K/D vs target (${p.kd.toFixed(2)})</span>`);
+    if(p.lowBoost)tags.push(`<span class="tag watch">Low level (${p.level})</span>`);
+    if(p.partyLoss)tags.push(`<span class="tag high">High suspicion: partied, then lost to them${p.lostTo>1?' ×'+p.lostTo:''}</span>`);
+    if(p.altHigh)tags.push('<span class="tag high">Alternating results</span>');
+    else if(p.level==='watch')tags.push('<span class="tag watch">Repeat opponent</span>');
+    if(p.stack)tags.push('<span class="tag party">Party mate</span>');
+    h+=`<tr><td class="nm">${esc(p.name)}<small>#${esc(p.tag)}</small>${p.level!=null?` <small>Lv ${p.level}</small>`:''}</td>
+    <td>${p.wn?`${p.wn}× · ${wl(p.with)}`:'–'}</td>
+    <td>${p.n?`${p.n}× · ${wl(p.against.map(a=>a.res))}`:'–'}${p.kd!=null?`<br><small style="color:${p.poorKd?'var(--l)':'var(--mute)'}">K/D ${p.kd.toFixed(2)}</small>`:''}</td>
+    <td>${p.n?seq(p.against):'–'}</td>
+    <td>${p.n>1?Math.round(p.alt*100)+'%':'–'}</td>
+    <td>${servers(p.with.concat(p.against))}</td>
+    <td>${tags.join(' ')||'–'}</td></tr>`;
+  }
+  $('tbl').innerHTML=h;
+}
+</script>
+</body>
+</html>
